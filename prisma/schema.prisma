@@ -1,0 +1,361 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// admin model
+model admin {
+  id        Int     @id @default(autoincrement())
+  name      String
+  image     String
+  email     String  @unique
+  role      String? @default("admin")
+  password  String
+  secretKey String
+}
+
+// blogs,ytcontent,article category model
+model ContentCategory {
+  id          Int    @id @default(autoincrement())
+  category    String @unique
+  description String
+  image_path  String
+}
+
+model Category {
+  id              Int       @id @default(autoincrement())
+  name            String
+  imagePath       String
+  services        Service[]
+  manager         manager?  @relation(fields: [assignedManager], references: [username])
+  assignedManager String
+}
+
+model Service {
+  id                   Int             @id @default(autoincrement())
+  title                String          @unique
+  imagePath            String
+  description          String
+  tags                 String[]
+  subtitle             String[]
+  what_we_will_discuss String[]
+  benefits             String[]
+  language             String
+  duration             Int
+  price                Int
+  Category             Category?       @relation(fields: [categoryId], references: [id])
+  categoryId           Int
+  doctorServices       DoctorService[]
+  doctorPrice          DoctorPrice[]
+  booking              Booking[]
+}
+
+model DoctorPrice {
+  id        Int     @id @default(autoincrement())
+  yourPrice Int
+  serviceId Int
+  doctorId  Int
+  Doctor    Doctor  @relation(fields: [doctorId], references: [id])
+  Service   Service @relation(fields: [serviceId], references: [id])
+
+  @@unique([doctorId, serviceId])
+}
+
+// creator model
+model Creator {
+  id              Int               @id @default(autoincrement())
+  username        String            @unique
+  email           String            @unique
+  profile_path    String
+  profile_type    String
+  country         String //country name (default 91 India)
+  contact_number  String //mobile number
+  state           String
+  language        String[]
+  password        String
+  role            String?           @default("creator")
+  status          String            @default("active") //active pending temporary off
+  remarks         String            @default("no remarks")
+  yt_contents     Yt_content[]
+  blog_contents   Blog_content[]
+  article_content Article_content[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  manager         manager?          @relation(fields: [assignedManager], references: [username])
+  assignedManager String
+}
+
+// yt model
+model Yt_content {
+  id           Int      @id @default(autoincrement())
+  iframe       String
+  heading      String
+  content      String
+  tags         String[]
+  category     String[]
+  views        Int      @default(0)
+  verified     String   @default("pending") //active,pending,unpublish,rejected,need improvement
+  creator      Creator  @relation(fields: [yt_creatorId], references: [id])
+  yt_creatorId Int
+  createdAt    DateTime @default(now())
+  updated      DateTime @updatedAt
+}
+
+// article model
+model Article_content {
+  id                Int      @id @default(autoincrement())
+  heading           String
+  content           String
+  articleImagePath  String
+  articleImageType  String
+  tags              String[]
+  views             Int      @default(0)
+  category          String[]
+  verified          String   @default("pending") //active,pending,unpublish,rejected,need improvement
+  Creator           Creator  @relation(fields: [article_creatorId], references: [id])
+  article_creatorId Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// blogs model
+model Blog_content {
+  id             Int      @id @default(autoincrement())
+  content        String
+  tags           String[] //multi
+  category       String[] //multi
+  verified       String   @default("pending") //active,pending,unpublish,rejected,need improvement
+  Creator        Creator  @relation(fields: [blog_creatorId], references: [id])
+  blog_creatorId Int
+  views          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+//patient models
+model Patient {
+  id            Int            @id @default(autoincrement())
+  patientName   String
+  email         String         @unique
+  profileUrl    String?
+  country       String?
+  contactNumber String?
+  dob           String? //selectd dob from calender(dd-mm-yy) to wish birthday of user
+  gender        String? //male female others
+  otp           String?
+  fcmToken      String
+  emailVerified String?        @default("no")
+  password      String?
+  role          String?        @default("patient")
+  recentTicket  recentTicket[]
+  review        Review[]
+  mood          Mood[]
+  booking       Booking[]
+  support       Support[]
+  Rating        Rating[]
+  Journal       Journal[]
+  continum      continum[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Journal {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  Patient     Patient  @relation(fields: [patientId], references: [id])
+  patientId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model recentTicket {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  imageUrl    String
+  Patient     Patient  @relation(fields: [patientId], references: [id])
+  patientId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  patientId   Int
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Support {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  image       String
+  Patient     Patient? @relation(fields: [patientId], references: [id])
+  patientId   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Mood {
+  int       Int      @id @default(autoincrement())
+  patientId Int
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  mood      String
+  note      String
+  factor    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// doctor model
+model Doctor {
+  id                 Int                  @id @default(autoincrement())
+  username           String?              @unique
+  verified           String               @default("no")
+  profileUrl         String?
+  fcmToken           String?
+  doctorName         String?
+  email              String               @unique
+  password           String?
+  country            String?
+  role               String?              @default("doctor")
+  contactNumber      String?
+  emailVerified      String?              @default("no")
+  gender             String?
+  state              String?
+  noOfBooking        Int?                 @default(0)
+  otp                String?
+  languages          String[]
+  experience         String?
+  maximumEducation   String?
+  documents          String?
+  pricePerSession    String?
+  status             String?              @default("active")
+  remarks            String?              @default("I am active")
+  manager            manager?             @relation(fields: [assignedManager], references: [username])
+  assignedManager    String?
+  doctorAvailability DoctorAvailability[]
+  booking            Booking[]
+  availableSlots     availableSlots[]
+  doctorServices     DoctorService[]
+  doctorPrice        DoctorPrice[]
+  Rating             Rating[]
+}
+
+model DoctorService {
+  doctorId  Int
+  serviceId Int
+  doctor    Doctor  @relation(fields: [doctorId], references: [id])
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@id([doctorId, serviceId])
+}
+
+model DoctorAvailability {
+  id        Int      @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+  Doctor    Doctor   @relation(fields: [doctorId], references: [id])
+  doctorId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model availableSlots {
+  id        Int      @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+  Doctor    Doctor   @relation(fields: [doctorId], references: [id])
+  doctorId  Int
+  isBooked  String   @default("no")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([doctorId, startTime, endTime])
+}
+
+model Booking {
+  id          Int      @id @default(autoincrement())
+  patientId   Int
+  doctorId    Int
+  slotStart   DateTime
+  serviceId   Int
+  slotEnd     DateTime
+  channelName String
+  notes       String?
+  isCompleted String   @default("no")
+  notified    Boolean  @default(false)
+  Doctor      Doctor   @relation(fields: [doctorId], references: [id])
+  Patient     Patient  @relation(fields: [patientId], references: [id])
+  Rating      Rating[]
+  Service     Service  @relation(fields: [serviceId], references: [id])
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  patientId Int
+  doctorId  Int
+  bookingId Int
+  stars     Int
+  isPublic  String   @default("no")
+  review    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Patient   Patient  @relation(fields: [patientId], references: [id])
+  Doctor    Doctor   @relation(fields: [doctorId], references: [id])
+  Booking   Booking  @relation(fields: [bookingId], references: [id])
+
+  @@unique([bookingId, patientId, doctorId])
+}
+
+// manager model
+model manager {
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  username            String                @unique
+  email               String                @unique
+  states              String[]
+  countries           String[]
+  profile_path        String
+  contact_number      String
+  role                String?               @default("manager")
+  password            String
+  status              String?               @default("active")
+  remarks             String?               @default("I am active")
+  managerNotification managerNotification[]
+  creators            Creator[]
+  doctors             Doctor[]
+  assignedCategory    Category[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+}
+
+model managerNotification {
+  id        Int     @id @default(autoincrement())
+  isRead    String  @default("no")
+  title     String
+  content   String
+  data      String
+  manager   manager @relation(fields: [managerId], references: [id])
+  managerId Int
+}
+
+model continum {
+  id        Int     @id @default(autoincrement())
+  value     Int
+  Patient   Patient @relation(fields: [patientId], references: [id])
+  patientId Int
+}
